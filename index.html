@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Circles</title>
+	<script type="text/javascript" src="./raphael.js"></script>
+		
+</head>
+<body>
+
+<script type="text/javascript" src="./main.js"></script>
+
+<script>
+  // See Raphael docs (Raphael()) 
+  var circleGrid = circleGridModule( 10,10, 640, 480 );
+
+  // Just draws a circle with a radius of 50
+  // and returns a circle object with which we
+  // can play
+  var circle = circleGrid.drawCircle( 
+      {x: 100, y: 80}, // where 
+      80 // how big
+  );
+
+  // Show off how easy it is to draw a new circle 
+  // on the circumference of the first cirle we created
+  var neighbourCircle = circleGrid.drawCircle( 
+      circle.getCircumWorldCoordsByDegrees(60), // where 
+      50 // how big
+  ); 
+  
+  // Let's bring it home and do it one more time 
+  var lordOfTheRings = circleGrid.drawCircle( 
+      neighbourCircle.getCircumWorldCoordsByDegrees(60), // where 
+      20, // how big
+      'green', // let's give it a color!
+      '#993399' // and a nice edge 
+  ); 
+
+  // Dump all circles in the grid we could loop these
+  // and start animating them and all that weird stuff
+  console.log(circleGrid.getAllCircles());
+</script>
+</body>
+</html>
