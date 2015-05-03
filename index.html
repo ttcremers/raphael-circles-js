@@ -10,35 +10,134 @@
 <script type="text/javascript" src="./main.js"></script>
 
 <script>
-  // See Raphael docs (Raphael()) 
-  var circleGrid = circleGridModule( 10,10, 640, 480 );
 
-  // Just draws a circle with a radius of 50
-  // and returns a circle object with which we
-  // can play
-  var circle = circleGrid.drawCircle( 
-      {x: 100, y: 80}, // where 
-      80 // how big
-  );
-
-  // Show off how easy it is to draw a new circle 
-  // on the circumference of the first cirle we created
-  var neighbourCircle = circleGrid.drawCircle( 
-      circle.getCircumWorldCoordsByDegrees(60), // where 
-      50 // how big
-  ); 
+  // shim layer with setTimeout fallback
+  (function() {
+      var lastTime = 0;
+      var vendors = ['ms', 'moz', 'webkit', 'o'];
+      for(var x = 0; x < vendors.length && !window.requestAnimationFrame; ++x) {
+          window.requestAnimationFrame = window[vendors[x]+'RequestAnimationFrame'];
+          window.cancelAnimationFrame = window[vendors[x]+'CancelAnimationFrame'] 
+                                    || window[vendors[x]+'CancelRequestAnimationFrame'];
+      }
   
-  // Let's bring it home and do it one more time 
-  var lordOfTheRings = circleGrid.drawCircle( 
-      neighbourCircle.getCircumWorldCoordsByDegrees(60), // where 
-      20, // how big
-      'green', // let's give it a color!
-      '#993399' // and a nice edge 
-  ); 
+      if (!window.requestAnimationFrame)
+          window.requestAnimationFrame = function(callback, element) {
+              var currTime = new Date().getTime();
+              var timeToCall = Math.max(0, 16 - (currTime - lastTime));
+              var id = window.setTimeout(function() { callback(currTime + timeToCall); }, 
+                timeToCall);
+              lastTime = currTime + timeToCall;
+              return id;
+          };
+  
+      if (!window.cancelAnimationFrame)
+          window.cancelAnimationFrame = function(id) {
+              clearTimeout(id);
+          };
+  }());
+  
+  var circleGrid = circleGridModule( 10, 0, 1280, 750 );
 
-  // Dump all circles in the grid we could loop these
-  // and start animating them and all that weird stuff
-  console.log(circleGrid.getAllCircles());
+  // See Raphael docs (Raphael()) 
+  var APP = { };
+  APP.core = {
+    frame: function() {
+      APP.core.setDelta();
+      APP.core.update();
+      APP.core.render(circleGrid);
+      APP.core.animationFrame = window.requestAnimationFrame(APP.core.frame);
+    },
+
+    setDelta: function() {
+      APP.core.now = Date.now();
+      if ( typeof APP.core.then !== 'undefined' ) {
+        APP.core.delta = (APP.core.now - APP.core.then) / 1000; // seconds since last frame
+      } else {
+        APP.core.delta = 0;
+      }
+      APP.core.then = APP.core.now;
+    },
+
+    update: function() {
+      // Update values
+      var distance = 100 * APP.core.delta;
+      for (var i = 0; i < FrameAgnosticProperties.getAllSizes().length; i++) {
+        var c = FrameAgnosticProperties.getAllSizes()[i];
+        if (c.getSize() < c.getTargetSize()) {
+          c.setSize(distance + c.getSize());
+        }
+        if (c.getSize() > c.getTargetSize()) {
+          var size = c.getSize() - distance;
+          if (size > 0) {
+            c.setSize(size);
+          }
+        }
+      }
+    },
+
+    drawCircle: function(cg, vec, mainSize, growSize) {
+      // Just draws a circle with a radius of 50
+      // and returns a circle object with which we
+      // can register listeners
+      var circleSize = FrameAgnosticProperties.getOrCreateSize( 
+          cg.internalCounter, mainSize );
+      var circle = cg.createCircle( 
+          vec, // where 
+          circleSize.getSize() // how big (radius)
+      );
+
+      if ( growSize ) {
+        circle.element.mouseover(function() {
+          circleSize.setTargetSize(growSize); 
+        });
+        circle.element.mouseout(function() {
+          circleSize.setTargetSize(mainSize); 
+        });
+      }
+      return circle;
+    },
+
+    render: function(cg) {
+      // Render updates to browser (draw to canvas, update css, etc.)
+      cg.getMainPaper().clear(); // clean our stage
+
+      var c1 = this.drawCircle(cg,
+          {x: 100, y: 80}, 
+          150, 170);
+      var c2 = this.drawCircle(cg,
+          c1.getCircumWorldCoordsByDegrees(160), // where
+          5);
+      var c3 = this.drawCircle(cg,
+          c1.getCircumWorldCoordsByDegrees(300), // where
+          5);
+      
+      var c4 = this.drawCircle(cg,
+          c1.getCircumWorldCoordsByDegrees(30), // where
+          70, 90);
+      var c5 = this.drawCircle(cg,
+          c4.getCircumWorldCoordsByDegrees(160), // where
+          5);
+      var c6 = this.drawCircle(cg,
+          c4.getCircumWorldCoordsByDegrees(300), // where
+          5);
+      
+      var c7 = this.drawCircle(cg,
+          c4.getCircumWorldCoordsByDegrees(90), // where
+          60, 80);
+      var c8 = this.drawCircle(cg,
+          c7.getCircumWorldCoordsByDegrees(160), // where
+          5);
+      var c9 = this.drawCircle(cg,
+          c7.getCircumWorldCoordsByDegrees(300), // where
+          5);
+
+      cg.resetInternalCounter();
+    }
+  };
+
+  APP.core.frame();
+
 </script>
 </body>
 </html>
