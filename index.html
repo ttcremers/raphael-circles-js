@@ -38,6 +38,18 @@
   }());
   
   var circleGrid = circleGridModule( 10, 0, 1280, 750 );
+  var data = [
+    { percent: 10, text: "test 10" }, 
+    { percent: 20, text: "test 20" }, 
+    { percent: 30, text: "test 30" }, 
+    { percent: 40, text: "test 40" }, 
+    { percent: 50, text: "test 50" }, 
+    { percent: 60, text: "test 60" }, 
+    { percent: 70, text: "test 70" }, 
+    { percent: 80, text: "test 80" }, 
+    { percent: 90, text: "test 90" }, 
+    { percent: 100, text: "test 100" }, 
+  ];
 
   // See Raphael docs (Raphael()) 
   var APP = { };
@@ -62,6 +74,11 @@
       smartPositionVectors: []
     },
 
+    setData: function(d) {
+      d.sort(function(a, b) { return b.percent - a.percent });
+      this.data = d; 
+    },
+
     frame: function() {
       APP.core.setDelta();
       APP.core.update();
@@ -82,14 +99,14 @@
     update: function() {
       // Update values
       var distance = 100 * APP.core.delta;
-      for (var i = 0; i < FrameAgnosticProperties.getAllSizes().length; i++) {
+      for ( var i = 0; i < FrameAgnosticProperties.getAllSizes().length; i++ ) {
         var c = FrameAgnosticProperties.getAllSizes()[i];
-        if (c.getSize() < c.getTargetSize()) {
+        if ( c.getSize() < c.getTargetSize() ) {
           c.setSize(distance + c.getSize());
         }
-        if (c.getSize() > c.getTargetSize()) {
+        if ( c.getSize() > c.getTargetSize() ) {
           var size = c.getSize() - distance;
-          if (size > 0) {
+          if ( size > 0 ) {
             c.setSize(size);
           }
         }
@@ -126,9 +143,11 @@
       return circle;
     },
 
-    drawStatisticCircle: function(vec, percent) {
-      var circle = this.drawCircle(cg, vec, 35, 150);
-      circle.element.attr('fill', "#89cff0");
+    drawStatisticCircle: function(cg, vec, s_size, b_size, text) {
+      var circle = this.drawCircle(cg, vec, s_size, b_size);
+      var txt = cg.getMainPaper().text(vec.x, vec.y, text);
+      txt.attr('fill', "#89cff0");
+      txt.attr('font-size', 12);
       return circle; 
     },
 
@@ -243,14 +262,17 @@
           );
     },
 
-    drawSmartCircles: function() {
+    drawSmartCircles: function(cg) {
       for (var i = 0; i < this.data.length; i++) {
         var d = this.data[i];
         var number = d.percent;
         var text = d.text;
-        
-        /* Write the code here to draw the smart circles based on data*/
-
+       
+        var c = this.drawStatisticCircle(cg,
+            this.circles.smartPositionVectors[i],
+            this.properties.minSmartCircleSize,
+            this.properties.maxSmartCircleSize,
+            text);
       }
     },
 
@@ -329,7 +351,7 @@
       return Math.floor(Math.random()*(max-min+1)+min);
     }
   };
-
+  APP.core.setData(data);
   APP.core.frame();
 
 </script>
