@@ -76,7 +76,7 @@
       }
     },
 
-    drawCircle: function(cg, vec, mainSize, growSize) {
+    drawCircle: function(cg, vec, mainSize, growSize, interactive, decorative) {
       // Just draws a circle with a radius of 50
       // and returns a circle object with which we
       // can register listeners
@@ -84,8 +84,16 @@
           cg.internalCounter, mainSize );
       var circle = cg.createCircle( 
           vec, // where 
-          circleSize.getSize() // how big (radius)
+          circleSize.getSize(), // how big (radius)
+          "#FFF", // fill 
+          "#89cff0" // radius 
       );
+      if ( interactive == false && decorative == false ) { 
+        circle.element.attr('fill-opacity', 0);
+      }
+      if ( interactive ) {
+        circle.element.toFront(); 
+      }
 
       if ( growSize ) {
         circle.element.mouseover(function() {
@@ -102,9 +110,35 @@
       // Render updates to browser (draw to canvas, update css, etc.)
       cg.getMainPaper().clear(); // clean our stage
 
+      var cM1 = this.drawCircle(cg,
+          {x: 640, y: 300}, 
+          200, 200, false, false);
+      var cM2 = this.drawCircle(cg,
+          cM1.getCircumWorldCoordsByDegrees(150), // where
+          25, 25, false, true);
+      var cM3 = this.drawCircle(cg,
+          cM1.getCircumWorldCoordsByDegrees(80), // where
+          35, 35, false, true);
+      var cM4 = this.drawCircle(cg,
+          cM1.getCircumWorldCoordsByDegrees(180), // where
+          10, 10, false, true);
+      
+      var cM5 = this.drawCircle(cg,
+          cM1.getCircumWorldCoordsByDegrees(340), // where
+          200, 200, false, false);
+      var cM6 = this.drawCircle(cg,
+          cM5.getCircumWorldCoordsByDegrees(150), // where
+          25, 25);
+      var cM7 = this.drawCircle(cg,
+          cM5.getCircumWorldCoordsByDegrees(80), // where
+          35, 35);
+      var cM8 = this.drawCircle(cg,
+          cM5.getCircumWorldCoordsByDegrees(180), // where
+          10, 10);
+
       var c1 = this.drawCircle(cg,
-          {x: 100, y: 80}, 
-          150, 170);
+          cM1.getCircumWorldCoordsByDegrees(220),
+          70, 150);
       var c2 = this.drawCircle(cg,
           c1.getCircumWorldCoordsByDegrees(160), // where
           5);
@@ -113,8 +147,8 @@
           5);
       
       var c4 = this.drawCircle(cg,
-          c1.getCircumWorldCoordsByDegrees(30), // where
-          70, 90);
+          cM1.getCircumWorldCoordsByDegrees(300),
+          70, 150);
       var c5 = this.drawCircle(cg,
           c4.getCircumWorldCoordsByDegrees(160), // where
           5);
@@ -123,8 +157,8 @@
           5);
       
       var c7 = this.drawCircle(cg,
-          c4.getCircumWorldCoordsByDegrees(90), // where
-          60, 80);
+          cM1.getCircumWorldCoordsByDegrees(30),
+          70, 150);
       var c8 = this.drawCircle(cg,
           c7.getCircumWorldCoordsByDegrees(160), // where
           5);

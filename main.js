@@ -70,10 +70,11 @@ var circleGridModule = function(brwsrViewPortX, brwsrViewPortY, width, height) {
      *
      * @returns a vector (x,y)
      */
-    circle.getCircumWorldCoordsByDegrees = function(degrees) {
+    circle.getCircumWorldCoordsByDegrees = function(degrees, spacing) {
+      var spacing = spacing || 0;
       return {
-        x: (radius * Math.cos(degrees * Math.PI / 180.0) + circle.vec.x),
-        y: (radius * Math.sin(degrees * Math.PI / 180.0) + circle.vec.y)
+        x: (radius * Math.cos(degrees * Math.PI / 180.0) + circle.vec.x) +spacing,
+        y: (radius * Math.sin(degrees * Math.PI / 180.0) + circle.vec.y) +spacing
       };
     };
     
