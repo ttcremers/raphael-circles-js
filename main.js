@@ -1,3 +1,51 @@
+var SmartBubble = (function(vec, paper, size, growRate) {
+  // Fixed properties
+  var _paper    = paper;
+  var _size     = size;
+  var _growRate = growRate;
+  var _vec      = vec;
+
+  // Calculated in render loop
+  var _renderState = {
+    default: {
+      radiusSize: _size,
+      fontSize: 12,
+      textColor: "#89cff0"
+    },
+    big: {
+      radiusSize: 0,
+      fontSize: 0,
+      textColor: "#89cff0"
+    }
+  };
+
+  var onmouseover = function() {
+  };
+  var onmouseout = function() {
+  };
+
+  return {
+    update: function(distance) {
+      /* update internal properties */
+    },
+    render: function() {
+      /* render out the graphic to main paper */
+      var circle = _paper.circle(
+          _vec.x, 
+          _vec.y, 
+          _renderState.radiusSize);
+
+      circle.element.mouseover(onmouseover);
+      circle.element.mouseout(onmouseout);
+      
+      var text = _paper.text(vec.x, vec.y, text);
+      txt.attr('fill', "#89cff0");
+      txt.attr('font-size', _renderState.textSize);
+    }
+  };
+});
+
+
 // size/property tracking object
 var FrameAgnosticProperties = (function() {
   var registry = [];
