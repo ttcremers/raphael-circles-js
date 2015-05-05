@@ -36,324 +36,99 @@
               clearTimeout(id);
           };
   }());
+ 
   
-  var circleGrid = circleGridModule( 10, 0, 1280, 750 );
-  var data = [
-    { percent: 10, text: "test 10" }, 
-    { percent: 20, text: "test 20" }, 
-    { percent: 30, text: "test 30" }, 
-    { percent: 40, text: "test 40" }, 
-    { percent: 50, text: "test 50" }, 
-    { percent: 60, text: "test 60" }, 
-    { percent: 70, text: "test 70" }, 
-    { percent: 80, text: "test 80" }, 
-    { percent: 90, text: "test 90" }, 
-    { percent: 100, text: "test 100" }, 
-  ];
+  var mainPaper = Raphael(0, 0, 1280, 750); 
+  var centerVector = {}; 
+  centerVector.x = Math.round(mainPaper.width / 2);
+  centerVector.y = Math.round(mainPaper.height / 2);
+  
 
-  // See Raphael docs (Raphael()) 
-  var APP = { };
-  APP.core = {
-    properties: {
-      // Configure sizes
-      maxSmartCircleSize: 100,
-      minSmartCircleSize: 50,
-      smallDecorativeSize: 15,
-      mediumDecorativeSize: 25,
-      largeDecorativeSize: 35,
-      largeBackgroundCircleSize: 200,
-      mediumBackgroundCircleSize: 100,
-      // Configure amounts
-      backgroundCirclesCount: 4,
-      maxDecorativeCircleSets: 2,
-      decorativeCircleSpacing: 15 // Degrees!
-    },
-    circles: {
-      background: {},
-      decorativeDegrees: [],
-      smartPositionVectors: []
-    },
+  var levelDefinition = {
+    bubbles: [
+      {type: 'BackgroundBubble', args: [centerVector, mainPaper, 200], 
+        bubbles: [ 
+          { type: 'BackgroundBubble', args: [0, mainPaper, 200] } 
+        ]}, 
+    ]  
+  };
 
-    setData: function(d) {
-      d.sort(function(a, b) { return b.percent - a.percent });
-      this.data = d; 
+
+  var App = {
+    objectStore: [],
+
+    init: function(mainPaper, levelDefinition) {
+      // Generate all objects
+      var that = this;
+      var bubbleLevel = 0;
+      (function levelGenerate(bubbles, parentID) {
+        for (var i = 0; i < bubbles.length; i++) {
+          var b = bubbles[i];
+          that.objectStore.push(
+              { 
+                bubble: window[b.type].apply(null, b.args),
+                parentID: parentID,
+                position: b.args.shift()
+              }
+          );
+          
+          // Recurse if needed
+          if ( typeof b.bubbles !== 'undefined' ) {
+            levelGenerate(b.bubbles, that.objectStore.length); 
+          }
+        }
+      })(levelDefinition.bubbles, 0);
+
+      // We need to reverse the data set or else 
+      // we run into problems calculating vectors
+      // later on
+      this.objectStore.reverse();
+
+      this.frame(); // This starts the game loop
     },
 
     frame: function() {
-      APP.core.setDelta();
-      APP.core.update();
-      APP.core.render(circleGrid);
-      APP.core.animationFrame = window.requestAnimationFrame(APP.core.frame);
+      App.setDelta();
+      App.update();
+      App.render();
+      App.animationFrame = window.requestAnimationFrame(App.frame);
     },
 
     setDelta: function() {
-      APP.core.now = Date.now();
-      if ( typeof APP.core.then !== 'undefined' ) {
-        APP.core.delta = (APP.core.now - APP.core.then) / 1000; // seconds since last frame
+      App.now = Date.now();
+      if ( typeof App.then !== 'undefined' ) {
+        App.delta = (App.now - App.then) / 1000; // seconds since last frame
       } else {
-        APP.core.delta = 0;
+        App.delta = 0;
       }
-      APP.core.then = APP.core.now;
+      App.then = App.now;
     },
 
     update: function() {
-      // Update values
-      var distance = 100 * APP.core.delta;
-      for ( var i = 0; i < FrameAgnosticProperties.getAllSizes().length; i++ ) {
-        var c = FrameAgnosticProperties.getAllSizes()[i];
-        if ( c.getSize() < c.getTargetSize() ) {
-          c.setSize(distance + c.getSize());
-        }
-        if ( c.getSize() > c.getTargetSize() ) {
-          var size = c.getSize() - distance;
-          if ( size > 0 ) {
-            c.setSize(size);
-          }
+      for (var i = 0; i < this.objectStore.length; i++) {
+        var obj = this.objectStore[i];
+        if ( typeof obj.position === 'object' ) {
+          obj.bubble.update(obj.position); 
+        } else {
+          obj.bubble.update(
+              this.objectStore[obj.parentID].bubble.getCircumWorldCoordsByDegrees(obj.position)
+              ); 
         }
       }
     },
 
-    drawCircle: function(cg, vec, mainSize, growSize, interactive, decorative) {
-      // Just draws a circle with a radius of 50
-      // and returns a circle object with which we
-      // can register listeners
-      var circleSize = FrameAgnosticProperties.getOrCreateSize( 
-          cg.internalCounter, mainSize );
-      var circle = cg.createCircle( 
-          vec, // where 
-          circleSize.getSize(), // how big (radius)
-          "#FFF", // fill 
-          "#89cff0" // radius 
-      );
-      if ( interactive == false && decorative == false ) { 
-        circle.element.attr('fill-opacity', 0);
-      }
-      if ( interactive ) {
-        circle.element.toFront(); 
-      }
-
-      if ( growSize ) {
-        circle.element.mouseover(function() {
-          circleSize.setTargetSize(growSize); 
-        });
-        circle.element.mouseout(function() {
-          circleSize.setTargetSize(mainSize); 
-        });
-      }
-      return circle;
-    },
-
-    drawStatisticCircle: function(cg, vec, s_size, b_size, text) {
-      var circle = this.drawCircle(cg, vec, s_size, b_size);
-      var txt = cg.getMainPaper().text(vec.x, vec.y, text);
-      txt.attr('fill', "#89cff0");
-      txt.attr('font-size', 12);
-      return circle; 
-    },
-
-    drawDecortiveCircles: function(cg, parent_c, parent_size) {
-      var degrees = this.circles.decorativeDegrees[parent_c.id]; 
-      if ( typeof degrees === 'undefined' ) {
-        degrees = this.randomINTBetween(1, 360);   
-        this.circles.decorativeDegrees.push(degrees);
-      }
-
-      var scale = parent_size / this.properties.largeBackgroundCircleSize;
-
-      this.drawCircle(cg,
-          parent_c.getCircumWorldCoordsByDegrees(degrees), // where
-          8 * scale, 8 * scale , false, true);
-
-      degrees += (this.properties.decorativeCircleSpacing);
-      this.drawCircle(cg,
-          parent_c.getCircumWorldCoordsByDegrees(degrees), // where
-          16 * scale, 16 * scale, false, true);
-
-      degrees += (5 +  this.properties.decorativeCircleSpacing);
-      this.drawCircle(cg,
-          parent_c.getCircumWorldCoordsByDegrees(degrees), // where
-          24 * scale , 24 * scale, false, true);
-    },
-
-    drawBackgroundCircles: function(cg) {
-      var centerVector = {};
-      centerVector.x = Math.round(circleGrid.getMainPaper().width / 2);
-      centerVector.y = Math.round(circleGrid.getMainPaper().height / 2);
-      
-      this.circles.background.circle80To60 = this.drawCircle(cg,
-          centerVector, 
-          this.properties.largeBackgroundCircleSize, 
-          this.properties.largeBackgroundCircleSize, false, false);
-      this.drawDecortiveCircles(cg, 
-          this.circles.background.circle80To60,
-          this.properties.largeBackgroundCircleSize 
-          );
-      
-      this.circles.background.circle100To80 = this.drawCircle(cg,
-          this.circles.background.circle80To60.getCircumWorldCoordsByDegrees(0), 
-          this.properties.largeBackgroundCircleSize, 
-          this.properties.largeBackgroundCircleSize, false, false);
-      this.drawDecortiveCircles(cg, 
-          this.circles.background.circle100To80,
-          this.properties.largeBackgroundCircleSize 
-          );
-
-      this.circles.background.circle60To40 = this.drawCircle(cg,
-          this.circles.background.circle80To60.getCircumWorldCoordsByDegrees(200), 
-          this.properties.mediumBackgroundCircleSize, 
-          this.properties.mediumBackgroundCircleSize, false, false);
-      this.drawDecortiveCircles(cg, 
-          this.circles.background.circle60To40,
-          this.properties.mediumBackgroundCircleSize 
-          );
-
-      this.circles.background.circle40To20 = this.drawCircle(cg,
-          this.circles.background.circle80To60.getCircumWorldCoordsByDegrees(90), 
-          this.properties.mediumBackgroundCircleSize, 
-          this.properties.mediumBackgroundCircleSize, false, false);
-      this.drawDecortiveCircles(cg, 
-          this.circles.background.circle40To20,
-          this.properties.mediumBackgroundCircleSize 
-          );
-
-      this.circles.background.circle20To0 = this.drawCircle(cg,
-          this.circles.background.circle60To40.getCircumWorldCoordsByDegrees(160), 
-          this.properties.mediumBackgroundCircleSize, 
-          this.properties.mediumBackgroundCircleSize, false, false);
-      this.drawDecortiveCircles(cg, 
-          this.circles.background.circle20To0,
-          this.properties.mediumBackgroundCircleSize
-          );
-     
-      // Store all vectors for our smart circle positions
-      this.circles.smartPositionVectors.push(
-          this.circles.background.circle100To80.getCircumWorldCoordsByDegrees(180) 
-          );
-      this.circles.smartPositionVectors.push(
-          this.circles.background.circle100To80.getCircumWorldCoordsByDegrees(270) 
-          );
-
-      this.circles.smartPositionVectors.push(
-          this.circles.background.circle80To60.getCircumWorldCoordsByDegrees(360) 
-          );
-      this.circles.smartPositionVectors.push(
-          this.circles.background.circle80To60.getCircumWorldCoordsByDegrees(10) 
-          );
-      
-      this.circles.smartPositionVectors.push(
-          this.circles.background.circle60To40.getCircumWorldCoordsByDegrees(180) 
-          );
-      this.circles.smartPositionVectors.push(
-          this.circles.background.circle60To40.getCircumWorldCoordsByDegrees(270) 
-          );
-      
-      this.circles.smartPositionVectors.push(
-          this.circles.background.circle40To20.getCircumWorldCoordsByDegrees(180) 
-          );
-      this.circles.smartPositionVectors.push(
-          this.circles.background.circle40To20.getCircumWorldCoordsByDegrees(270) 
-          );
-
-      this.circles.smartPositionVectors.push(
-          this.circles.background.circle20To0.getCircumWorldCoordsByDegrees(10) 
-          );
-      this.circles.smartPositionVectors.push(
-          this.circles.background.circle20To0.getCircumWorldCoordsByDegrees(180) 
-          );
-    },
-
-    drawSmartCircles: function(cg) {
-      for (var i = 0; i < this.data.length; i++) {
-        var d = this.data[i];
-        var number = d.percent;
-        var text = d.text;
-       
-        var c = this.drawStatisticCircle(cg,
-            this.circles.smartPositionVectors[i],
-            this.properties.minSmartCircleSize,
-            this.properties.maxSmartCircleSize,
-            text);
-      }
-    },
-
-    render: function(cg) {
-      // Render updates to browser (draw to canvas, update css, etc.)
-      cg.getMainPaper().clear(); // clean our stage
-      this.drawBackgroundCircles(cg); 
-      this.drawSmartCircles(cg); 
-      cg.resetInternalCounter();
-    },
-
-    render_old: function(cg) {
-      // Render updates to browser (draw to canvas, update css, etc.)
-      cg.getMainPaper().clear(); // clean our stage
-
-      var cM1 = this.drawCircle(cg,
-          {x: 640, y: 300}, 
-          200, 200, false, false);
-      var cM2 = this.drawCircle(cg,
-          cM1.getCircumWorldCoordsByDegrees(150), // where
-          25, 25, false, true);
-      var cM3 = this.drawCircle(cg,
-          cM1.getCircumWorldCoordsByDegrees(90), // where
-          35, 35, false, true);
-      var cM4 = this.drawCircle(cg,
-          cM1.getCircumWorldCoordsByDegrees(180), // where
-          10, 10, false, true);
-      
-      
-      var cM5 = this.drawCircle(cg,
-          cM1.getCircumWorldCoordsByDegrees(340), // where
-          200, 200, false, false);
-      var cM6 = this.drawCircle(cg,
-          cM5.getCircumWorldCoordsByDegrees(150), // where
-          25, 25);
-      var cM7 = this.drawCircle(cg,
-          cM5.getCircumWorldCoordsByDegrees(320), // where
-          35, 35);
-      var cM8 = this.drawCircle(cg,
-          cM5.getCircumWorldCoordsByDegrees(180), // where
-          10, 10);
-      var cM9 = this.drawCircle(cg,
-          cM5.getCircumWorldCoordsByDegrees(345), // where
-          25, 25);
-      var cM9 = this.drawCircle(cg,
-          cM5.getCircumWorldCoordsByDegrees(5), // where
-          15, 15);
-      
-      var cM10 = this.drawCircle(cg,
-          cM1.getCircumWorldCoordsByDegrees(90), // where
-          120, 120, false, false);
-      var c8 = this.drawCircle(cg,
-          cM10.getCircumWorldCoordsByDegrees(30),
-          35, 150);
-      c8.element.attr('fill', "#89cff0");
-
-      var c1 = this.drawCircle(cg,
-          cM1.getCircumWorldCoordsByDegrees(220),
-          70, 150);
-      c1.element.attr('fill', "#89cff0");
-      
-      var c4 = this.drawCircle(cg,
-          cM1.getCircumWorldCoordsByDegrees(300),
-          70, 150);
-      c4.element.attr('fill', "#89cff0");
-      
-      var c7 = this.drawCircle(cg,
-          cM1.getCircumWorldCoordsByDegrees(30),
-          70, 150);
-      c7.element.attr('fill', "#89cff0");
-
-      cg.resetInternalCounter();
-    },
-
-    randomINTBetween: function(min, max) {
-      return Math.floor(Math.random()*(max-min+1)+min);
+    render: function() {
+      mainPaper.clear(); // clean our stage
+      for (var i = 0; i < this.objectStore.length; i++) {
+        var obj = this.objectStore[i];
+        obj.bubble.render();
+      } 
     }
+  
   };
-  APP.core.setData(data);
-  APP.core.frame();
 
+  App.init(mainPaper, levelDefinition);
+  
 </script>
 </body>
 </html>
