@@ -3,6 +3,7 @@
 <head>
 	<title>Circles</title>
 	<script type="text/javascript" src="./raphael.js"></script>
+	<script type="text/javascript" src="./easing.js"></script>
 		
 </head>
 <body>
@@ -110,6 +111,7 @@
     },
 
     update: function() {
+
       var distance = 100 * App.delta;
       for (var i = 0; i < this.objectStore.length; i++) {
         var obj = this.objectStore[i];

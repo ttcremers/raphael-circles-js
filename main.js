@@ -61,7 +61,7 @@ var BackgroundBubble = (function(paper, radius) {
     
 
   return {
-    update: function(vec) { 
+    update: function(vec, distance, framecount) { 
       _vec = vec; 
     },
     
@@ -87,18 +87,20 @@ var BackgroundBubble = (function(paper, radius) {
 
 var SmartBubble = (function(paper, baseRadius, percent, growRate, text) {
   // Fixed properties
-  var _paper            = paper;
-  var _baseRadius       = baseRadius;
-  var _growRate         = growRate;
-  var _vec              = { x:0, y:0 };
-  var _percent          = percent;
-  var _initialTextColor = "#89cff0"
-  var _targetTextColor  = "#FFF"
-  var _targetFillColor  = "#89cff0"
-  var _initialFillColor = "#FFF"
-  var _initialStrokeColor = "#89cff0"
-  var _targetStrokeColor = "#89cff0"
-  var _text             = text;
+  var _paper                  = paper;
+  var _baseRadius             = baseRadius;
+  var _growRate               = growRate;
+  var _vec                    = { x:0, y:0 };
+  var _percent                = percent;
+  var _initialTextColor       = "#89cff0"
+  var _targetTextColor        = "#FFF"
+  var _targetFillColor        = "#89cff0"
+  var _initialFillColor       = "#FFF"
+  var _initialStrokeColor     = "#89cff0"
+  var _targetStrokeColor      = "#89cff0"
+  var _text                   = text;
+  var _animationFrameCount    = 0;
+  var _maxAnimationFrameCount = 50;
  
   // Calculated based on percentages
   var _initialRadius = _baseRadius + (_baseRadius * percent); 
@@ -127,21 +129,32 @@ var SmartBubble = (function(paper, baseRadius, percent, growRate, text) {
   };
 
   return {
-    update: function(vec, distance) {
+    update: function(vec, distance, framecount) {
       // Position
       _vec = vec;
 
       /* update internal properties */
       switch (_state) {
         case _StatesEnum.MOUSEOVER:
+
           var targetSize = _initialRadius + (_initialRadius * growRate);
           var targetFontSize = _initialFontSize + ( _initialFontSize * growRate );
 
+          if (_animationFrameCount < _maxAnimationFrameCount) {
+            _animationFrameCount++;
+          }
+
           // Scale up bubble
           if ( _renderState.radiusSize < targetSize ) {
-            _renderState.radiusSize += distance;  
+            // Regulate frame animation effects
+            var step = easeInOutExpo(_animationFrameCount, 
+                _initialRadius, targetSize, _maxAnimationFrameCount);
+            
+            _renderState.radiusSize = step ;  
             _renderState.glow = true;
             _renderState.fillColor = _targetFillColor;
+          } else {
+            _animationFrameCount = 0;
           } 
 
           // Scale up text
@@ -152,14 +165,22 @@ var SmartBubble = (function(paper, baseRadius, percent, growRate, text) {
           break;
 
         case _StatesEnum.MOUSEOUT:
+          
+          if (_animationFrameCount < _maxAnimationFrameCount) {
+            _animationFrameCount++;
+          }
          
           // Shrink down bubble
-          var sizeToBe     = _renderState.radiusSize - distance;
+          var step = easeInOutExpo(_animationFrameCount, 
+              _renderState.radiusSize, _initialRadius, _maxAnimationFrameCount);
+          var sizeToBe = _renderState.radiusSize - (step - _renderState.radiusSize);
           if ( sizeToBe > _initialRadius ) {
             _renderState.radiusSize = sizeToBe;
             _renderState.glow = false;
             _renderState.fillColor = _initialFillColor;
-          } 
+          } else {
+            _animationFrameCount = 0;
+          }
           
           // Shrink down text
           var fontSizeToBe = _renderState.fontSize - distance;
