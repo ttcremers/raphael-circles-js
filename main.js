@@ -85,7 +85,7 @@ var BackgroundBubble = (function(paper, radius) {
   };
 });
 
-var SmartBubble = (function(paper, baseRadius, percent, growRate) {
+var SmartBubble = (function(paper, baseRadius, percent, growRate, text) {
   // Fixed properties
   var _paper            = paper;
   var _baseRadius       = baseRadius;
@@ -96,6 +96,7 @@ var SmartBubble = (function(paper, baseRadius, percent, growRate) {
   var _targetTextColor  = "#FFF"
   var _targetFillColor  = "#FFF"
   var _initialFillColor = "#89cff0"
+  var _text             = text;
  
   // Calculated based on percentages
   var _initialRadius = _baseRadius + (_baseRadius * percent); 
@@ -179,11 +180,15 @@ var SmartBubble = (function(paper, baseRadius, percent, growRate) {
         circle.glow({ color: _renderState.textColor }); 
       }       
 
-      var txt = _paper.text(_vec.x, _vec.y, "change me");
+      var txt = _paper.text(_vec.x, _vec.y, _text);
       txt.attr('fill', _renderState.textColor);
       txt.attr('font-size', _renderState.fontSize);
       txt.mouseover(onmouseover);
       txt.mouseout(onmouseout);
+    },
+    
+    getCircumWorldCoordsByDegrees: function() {
+      throw "SmartBubble doesn't implement this method! Check your definition";
     }
   };
 });
