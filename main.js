@@ -94,8 +94,10 @@ var SmartBubble = (function(paper, baseRadius, percent, growRate, text) {
   var _percent          = percent;
   var _initialTextColor = "#89cff0"
   var _targetTextColor  = "#FFF"
-  var _targetFillColor  = "#FFF"
-  var _initialFillColor = "#89cff0"
+  var _targetFillColor  = "#89cff0"
+  var _initialFillColor = "#FFF"
+  var _initialStrokeColor = "#89cff0"
+  var _targetStrokeColor = "#89cff0"
   var _text             = text;
  
   // Calculated based on percentages
@@ -113,6 +115,7 @@ var SmartBubble = (function(paper, baseRadius, percent, growRate, text) {
     radiusSize: _initialRadius,
     fontSize: _initialFontSize,
     textColor: "#89cff0",
+    strokeColor: "#89cff0",
     fillColor: "#FFF",
     glow: false
   };
@@ -138,11 +141,13 @@ var SmartBubble = (function(paper, baseRadius, percent, growRate, text) {
           if ( _renderState.radiusSize < targetSize ) {
             _renderState.radiusSize += distance;  
             _renderState.glow = true;
+            _renderState.fillColor = _targetFillColor;
           } 
 
           // Scale up text
           if ( _renderState.fontSize < targetFontSize ) {
             _renderState.fontSize += distance;
+            _renderState.textColor = _targetTextColor;
           } 
           break;
 
@@ -153,12 +158,14 @@ var SmartBubble = (function(paper, baseRadius, percent, growRate, text) {
           if ( sizeToBe > _initialRadius ) {
             _renderState.radiusSize = sizeToBe;
             _renderState.glow = false;
+            _renderState.fillColor = _initialFillColor;
           } 
           
           // Shrink down text
           var fontSizeToBe = _renderState.fontSize - distance;
           if ( fontSizeToBe > _initialFontSize ) {
             _renderState.fontSize = fontSizeToBe; 
+            _renderState.textColor = _initialTextColor;
           }
           break;
       }
@@ -169,15 +176,16 @@ var SmartBubble = (function(paper, baseRadius, percent, growRate, text) {
           _vec.x, 
           _vec.y, 
           _renderState.radiusSize);
+
       circle.attr('fill', _renderState.fillColor);
-      circle.attr('stroke', _renderState.textColor);
+      circle.attr('stroke', _renderState.strokeColor);
 
       circle.mouseover(onmouseover);
       circle.mouseout(onmouseout);
       circle.toFront(); 
 
       if ( _renderState.glow ) {
-        circle.glow({ color: _renderState.textColor }); 
+        circle.glow({ color: "#39bbf7", width: "5", fill: true }); 
       }       
 
       var txt = _paper.text(_vec.x, _vec.y, _text);
