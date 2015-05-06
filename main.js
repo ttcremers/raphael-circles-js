@@ -74,7 +74,11 @@ var BackgroundBubble = (function(vec, paper, radius) {
           _radius);
       circle.attr('fill-opacity', 0);
       circle.attr('stroke', "#89cff0");
-      console.log(circle);
+
+      // We need to reset the internal Raphael counter 
+      // which we don't use in our case. If we don't it
+      // we'll keep incrementing with every frame
+      circle.id=0;
       drawDecortiveCircles(circle);
     },
 
@@ -96,7 +100,7 @@ var SmartBubble = (function(vec, paper, baseRadius, percent, growRate) {
   var _initialFillColor = "#89cff0"
  
   // Calculated based on percentages
-  var _initialRadius = baseSize + (baseSize * percent); 
+  var _initialRadius = _baseRadius + (_baseRadius * percent); 
   var _initialFontSize = 12 + (12 * percent);  
 
   var _StatesEnum = {
@@ -112,7 +116,6 @@ var SmartBubble = (function(vec, paper, baseRadius, percent, growRate) {
     textColor: "#89cff0",
     fillColor: "#FFF"
   };
-  that
   var onmouseover = function() {
     _state = _StatesEnum.MOUSEOVER;
   };

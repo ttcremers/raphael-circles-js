@@ -50,6 +50,7 @@
         bubbles: [ 
           { type: 'BackgroundBubble', args: [0, mainPaper, 200] } 
         ]}, 
+      {type: 'SmartBubble', args: [180, mainPaper, 100, 0.1, 0.2]}
     ]  
   };
 
@@ -82,7 +83,7 @@
       // We need to reverse the data set or else 
       // we run into problems calculating vectors
       // later on
-      this.objectStore.reverse();
+      // this.objectStore.reverse();
 
       this.frame(); // This starts the game loop
     },
