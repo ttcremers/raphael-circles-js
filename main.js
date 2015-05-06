@@ -1,10 +1,10 @@
-var BackgroundBubble = (function(vec, paper, radius) {
+var BackgroundBubble = (function(paper, radius) {
   var randomINTBetween = function(min, max) {
     return Math.floor(Math.random()*(max-min+1)+min);
   };
 
   // Fixed properties
-  var _vec = vec;
+  var _vec = { x:0, y:0 };
   var _paper = paper;
   var _radius = radius;
   var _decorativePosition = randomINTBetween(1, 360); 
@@ -62,9 +62,7 @@ var BackgroundBubble = (function(vec, paper, radius) {
 
   return {
     update: function(vec) { 
-      if ( vec ) {
-        _vec = vec; 
-      }
+      _vec = vec; 
     },
     
     render: function() {
@@ -87,12 +85,12 @@ var BackgroundBubble = (function(vec, paper, radius) {
   };
 });
 
-var SmartBubble = (function(vec, paper, baseRadius, percent, growRate) {
+var SmartBubble = (function(paper, baseRadius, percent, growRate) {
   // Fixed properties
   var _paper            = paper;
   var _baseRadius       = baseRadius;
   var _growRate         = growRate;
-  var _vec              = vec;
+  var _vec              = { x:0, y:0 };
   var _percent          = percent;
   var _initialTextColor = "#89cff0"
   var _targetTextColor  = "#FFF"
@@ -101,7 +99,7 @@ var SmartBubble = (function(vec, paper, baseRadius, percent, growRate) {
  
   // Calculated based on percentages
   var _initialRadius = _baseRadius + (_baseRadius * percent); 
-  var _initialFontSize = 12 + (12 * percent);  
+  var _initialFontSize = 10 + (10 * percent);  
 
   var _StatesEnum = {
     MOUSEOVER: 0,
@@ -114,7 +112,8 @@ var SmartBubble = (function(vec, paper, baseRadius, percent, growRate) {
     radiusSize: _initialRadius,
     fontSize: _initialFontSize,
     textColor: "#89cff0",
-    fillColor: "#FFF"
+    fillColor: "#FFF",
+    glow: false
   };
   var onmouseover = function() {
     _state = _StatesEnum.MOUSEOVER;
@@ -124,23 +123,42 @@ var SmartBubble = (function(vec, paper, baseRadius, percent, growRate) {
   };
 
   return {
-    update: function(distance) {
+    update: function(vec, distance) {
+      // Position
+      _vec = vec;
+
       /* update internal properties */
       switch (_state) {
         case _StatesEnum.MOUSEOVER:
           var targetSize = _initialRadius + (_initialRadius * growRate);
+          var targetFontSize = _initialFontSize + ( _initialFontSize * growRate );
+
+          // Scale up bubble
           if ( _renderState.radiusSize < targetSize ) {
             _renderState.radiusSize += distance;  
+            _renderState.glow = true;
+          } 
+
+          // Scale up text
+          if ( _renderState.fontSize < targetFontSize ) {
+            _renderState.fontSize += distance;
           } 
           break;
 
         case _StatesEnum.MOUSEOUT:
-          var targetSize = _initialRadius + (_initialRadius * growRate);
-          // SVG doesn't like -0 values so let's make sure we'll never hit that
-          var sizeToBe = _renderState.radiusSize - distance;
-          if ( sizeToBe > targetSize ) {
-            _renderState.radiusSize = sizeToBe;  
+         
+          // Shrink down bubble
+          var sizeToBe     = _renderState.radiusSize - distance;
+          if ( sizeToBe > _initialRadius ) {
+            _renderState.radiusSize = sizeToBe;
+            _renderState.glow = false;
           } 
+          
+          // Shrink down text
+          var fontSizeToBe = _renderState.fontSize - distance;
+          if ( fontSizeToBe > _initialFontSize ) {
+            _renderState.fontSize = fontSizeToBe; 
+          }
           break;
       }
     },
@@ -151,14 +169,21 @@ var SmartBubble = (function(vec, paper, baseRadius, percent, growRate) {
           _vec.y, 
           _renderState.radiusSize);
       circle.attr('fill', _renderState.fillColor);
+      circle.attr('stroke', _renderState.textColor);
 
       circle.mouseover(onmouseover);
       circle.mouseout(onmouseout);
       circle.toFront(); 
-      
-      var text = _paper.text(vec.x, vec.y, text);
+
+      if ( _renderState.glow ) {
+        circle.glow({ color: _renderState.textColor }); 
+      }       
+
+      var txt = _paper.text(_vec.x, _vec.y, "change me");
       txt.attr('fill', _renderState.textColor);
       txt.attr('font-size', _renderState.fontSize);
+      txt.mouseover(onmouseover);
+      txt.mouseout(onmouseout);
     }
   };
 });

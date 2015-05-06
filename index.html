@@ -46,11 +46,11 @@
 
   var levelDefinition = {
     bubbles: [
-      {type: 'BackgroundBubble', args: [centerVector, mainPaper, 200], 
+      {type: 'BackgroundBubble', position: centerVector, args: [mainPaper, 200], 
         bubbles: [ 
-          { type: 'BackgroundBubble', args: [0, mainPaper, 200] } 
+          {name: 'faulty', type: 'BackgroundBubble', position: 0, args: [mainPaper, 200] } 
         ]}, 
-      {type: 'SmartBubble', args: [180, mainPaper, 100, 0.1, 0.2]}
+      {type: 'SmartBubble', position: 180, args: [mainPaper, 50, 0.2, 0.2]}
     ]  
   };
 
@@ -61,7 +61,6 @@
     init: function(mainPaper, levelDefinition) {
       // Generate all objects
       var that = this;
-      var bubbleLevel = 0;
       (function levelGenerate(bubbles, parentID) {
         for (var i = 0; i < bubbles.length; i++) {
           var b = bubbles[i];
@@ -69,21 +68,17 @@
               { 
                 bubble: window[b.type].apply(null, b.args),
                 parentID: parentID,
-                position: b.args.shift()
+                position: b.position,
+                name: b.name
               }
           );
           
           // Recurse if needed
           if ( typeof b.bubbles !== 'undefined' ) {
-            levelGenerate(b.bubbles, that.objectStore.length); 
+            levelGenerate(b.bubbles, i); 
           }
         }
       })(levelDefinition.bubbles, 0);
-
-      // We need to reverse the data set or else 
-      // we run into problems calculating vectors
-      // later on
-      // this.objectStore.reverse();
 
       this.frame(); // This starts the game loop
     },
@@ -106,13 +101,15 @@
     },
 
     update: function() {
+      var distance = 100 * App.delta;
       for (var i = 0; i < this.objectStore.length; i++) {
         var obj = this.objectStore[i];
         if ( typeof obj.position === 'object' ) {
-          obj.bubble.update(obj.position); 
+          obj.bubble.update(obj.position, distance); 
         } else {
           obj.bubble.update(
-              this.objectStore[obj.parentID].bubble.getCircumWorldCoordsByDegrees(obj.position)
+              this.objectStore[obj.parentID].bubble.getCircumWorldCoordsByDegrees(obj.position),
+              distance
               ); 
         }
       }
