@@ -44,18 +44,39 @@
   centerVector.x = Math.round(mainPaper.width / 2);
   centerVector.y = Math.round(mainPaper.height / 2);
   
-
   var levelDefinition = {
-    bubbles: [
-      {name: '80-60', type: 'BackgroundBubble', position: centerVector, args: [mainPaper, 200], 
-        bubbles: [ 
-          {name: '50%', type: 'SmartBubble', position: 180, args: [mainPaper, 50, 0.4, 0.2, "40 Procent"]},
-          {name: '80-100', type: 'BackgroundBubble', position: 0, args: [mainPaper, 200],
-            bubbles: [
-              {name: '80%', type: 'SmartBubble', position: 180, args: [mainPaper, 50, 0.8, 0.2, "80 Procent"]}
-          ]} 
-        ]}, 
-    ]  
+    "60_80": {
+      position: centerVector,    
+      args: [mainPaper, 200],
+      smartBubbles: [
+        {name: '60%', position: 160, args: [mainPaper, 50, 0.6, 0.2, "60%\nBlah blah"]},
+      ]
+    },   
+    "80_100": {
+      parent: "60_80",
+      position: 340,
+      args: [mainPaper, 200],
+      smartBubbles: [
+        {name: '80%', position: 30, args: [mainPaper, 50, 0.8, 0.2, "80%\nBlah blah"]},
+        {name: '90%', position: 160, args: [mainPaper, 50, 0.9, 0.2, "90%\n Blah blah"]},
+      ]
+    },   
+    "40_60": {
+      parent: "60_80",
+      position: 210,
+      args: [mainPaper, 150],
+      smartBubbles: [
+        {name: '40%', position: 220, args: [mainPaper, 50, 0.7, 0.2, "40%\nBlah blah"]},
+      ]
+    },   
+    "20_40": {
+      parent: "40_60",
+      position: 165,
+      args: [mainPaper, 120],
+      smartBubbles: [
+        {name: '20%', position: 160, args: [mainPaper, 50, 0.5, 0.2, "20%\nBlah blah"]},
+      ]
+    }  
   };
 
 
@@ -63,33 +84,44 @@
     objectStore: [],
 
     init: function(mainPaper, levelDefinition) {
+
       // Generate all objects
-      var that = this;
-      (function levelGenerate(bubbles, parentID) {
+      var resolveBackgroundParents = {}; 
+      for (var i = 0; i < Object.keys(levelDefinition).length; i++) {
+        var b = levelDefinition[Object.keys(levelDefinition)[i]];
+        
+        // BackgroundBubbles
+        this.objectStore.push( { 
+              bubble: BackgroundBubble.apply(null, b.args),
+              parentID: b.parent,
+              position: b.position,
+              name: Object.keys(levelDefinition)[i] 
+            });
+       
+        // SmartBubbles
+        var p_idx = this.objectStore.length -1;
+        resolveBackgroundParents[Object.keys(levelDefinition)[i]] = p_idx;
 
-        for (var i = 0; i < bubbles.length; i++) {
-          var b = bubbles[i];
-          that.objectStore.push(
-              { 
-                bubble: window[b.type].apply(null, b.args),
-                parentID: parentID,
-                position: b.position,
-                name: b.name
-              }
-          );
-          
-          // Recurse if needed
-          if ( typeof b.bubbles !== 'undefined' ) {
-            if ( typeof parentID === 'number' ) {
-              parentID++; 
-              levelGenerate(b.bubbles, parentID + i ); 
-            } else {
-              levelGenerate(b.bubbles, 0 ); 
-            }
-          }
+        for (var x = 0; x < b.smartBubbles.length; x++) {
+          var s = b.smartBubbles[x];
+          this.objectStore.push( { 
+                bubble: SmartBubble.apply(null, s.args),
+                parentID: p_idx,
+                position: s.position,
+                name: s.name 
+              });
         }
-      })(levelDefinition.bubbles);
+      }
 
+      // Translate parentID string to array index ID
+      for (var i = 0; i < this.objectStore.length; i++) {
+        if (typeof this.objectStore[i].parentID !== 'number') {
+          this.objectStore[i].parentID = 
+            resolveBackgroundParents[this.objectStore[i].parentID];
+        }
+      }
+      console.log(resolveBackgroundParents);
+      console.log(this.objectStore);
       this.frame(); // This starts the game loop
     },
 

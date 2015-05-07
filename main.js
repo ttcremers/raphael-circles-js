@@ -7,7 +7,9 @@ var BackgroundBubble = (function(paper, radius) {
   var _vec = { x:0, y:0 };
   var _paper = paper;
   var _radius = radius;
-  var _decorativePosition = randomINTBetween(1, 360); 
+  var _decorativeSmallPosition = randomINTBetween(1, 120); 
+  var _decorativeMediumPosition = randomINTBetween(120, 240); 
+  var _decorativeLargePosition = randomINTBetween(240, 360); 
   
   /**
     * Helper function to make it easy to get a world point on 
@@ -25,38 +27,41 @@ var BackgroundBubble = (function(paper, radius) {
   };
   
   var drawDecortiveCircles = function(parentCircle) {
-    var degrees = _decorativePosition; 
     // FIXME the hardcoded radius of 200 should be refactored out
     var scale = parentCircle.attrs.r / 200;
 
     // Small
-    var v1 = getCircumWorldCoordsByDegrees(degrees);
+    var v1 = getCircumWorldCoordsByDegrees(_decorativeSmallPosition);
     var c1 = _paper.circle(
         v1.x, 
         v1.y, 
         8 * scale);
     c1.attr('stroke', "#89cff0");
     c1.attr('fill', "#FFF");
+    c1.toBack(); 
 
     // Medium
-    degrees += ( 8 * scale );
-    var v2 = getCircumWorldCoordsByDegrees(degrees);
+    //degrees += ( 4 * scale );
+    var v2 = getCircumWorldCoordsByDegrees(_decorativeMediumPosition);
     var c2 = _paper.circle(
         v2.x, 
         v2.y, 
         16 * scale);
     c2.attr('stroke', "#89cff0");
     c2.attr('fill', "#FFF");
+    c2.toBack(); 
     
     // Large
-    degrees += ((8 * scale) + (5 * scale));
-    var v3 = getCircumWorldCoordsByDegrees(degrees);
+    //degrees += ((8 * scale) + (5 * scale));
+    var v3 = getCircumWorldCoordsByDegrees(_decorativeLargePosition);
     var c3 = _paper.circle(
         v3.x, 
         v3.y, 
         24 * scale);
     c3.attr('stroke', "#89cff0");
     c3.attr('fill', "#FFF");
+    c3.toBack(); 
+
   };
     
 
@@ -78,6 +83,8 @@ var BackgroundBubble = (function(paper, radius) {
       // we'll keep incrementing with every frame
       circle.id=0;
       drawDecortiveCircles(circle);
+      
+      circle.toBack(); 
     },
 
     getCircumWorldCoordsByDegrees: getCircumWorldCoordsByDegrees
@@ -100,7 +107,7 @@ var SmartBubble = (function(paper, baseRadius, percent, growRate, text) {
   var _targetStrokeColor      = "#89cff0"
   var _text                   = text;
   var _animationFrameCount    = 0;
-  var _maxAnimationFrameCount = 50;
+  var _maxAnimationFrameCount = 15;
  
   // Calculated based on percentages
   var _initialRadius = _baseRadius + (_baseRadius * percent); 
@@ -147,7 +154,7 @@ var SmartBubble = (function(paper, baseRadius, percent, growRate, text) {
           // Scale up bubble
           if ( _renderState.radiusSize < targetSize ) {
             // Regulate frame animation effects
-            var step = easeInOutExpo(_animationFrameCount, 
+            var step = easeOutQuad(_animationFrameCount, 
                 _initialRadius, targetSize, _maxAnimationFrameCount);
             
             _renderState.radiusSize = step ;  
@@ -171,9 +178,10 @@ var SmartBubble = (function(paper, baseRadius, percent, growRate, text) {
           }
          
           // Shrink down bubble
-          var step = easeInOutExpo(_animationFrameCount, 
+          var step = easeInQuad(_animationFrameCount, 
               _renderState.radiusSize, _initialRadius, _maxAnimationFrameCount);
           var sizeToBe = _renderState.radiusSize - (step - _renderState.radiusSize);
+
           if ( sizeToBe > _initialRadius ) {
             _renderState.radiusSize = sizeToBe;
             _renderState.glow = false;
@@ -203,17 +211,33 @@ var SmartBubble = (function(paper, baseRadius, percent, growRate, text) {
 
       circle.mouseover(onmouseover);
       circle.mouseout(onmouseout);
-      circle.toFront(); 
 
       if ( _renderState.glow ) {
-        circle.glow({ color: "#39bbf7", width: "5", fill: true }); 
+        var c1 = _paper.circle(
+            _vec.x, 
+            _vec.y, 
+            _renderState.radiusSize + 30);
+        var c2 = _paper.circle(
+            _vec.x, 
+            _vec.y, 
+            _renderState.radiusSize + 60);
+        
+        c1.attr('fill', _renderState.fillColor);
+        c2.attr('fill', _renderState.fillColor);
+        c1.attr('fill-opacity', 0.2);
+        c2.attr('fill-opacity', 0.1);
+        c1.attr('stroke-opacity', 0.0);
+        c2.attr('stroke-opacity', 0.0);
       }       
+
+      circle.toFront(); 
 
       var txt = _paper.text(_vec.x, _vec.y, _text);
       txt.attr('fill', _renderState.textColor);
       txt.attr('font-size', _renderState.fontSize);
       txt.mouseover(onmouseover);
       txt.mouseout(onmouseout);
+
     },
     
     getCircumWorldCoordsByDegrees: function() {
