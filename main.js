@@ -111,7 +111,7 @@ var SmartBubble = (function(paper, baseRadius, percent, growRate, text) {
  
   // Calculated based on percentages
   var _initialRadius = _baseRadius + (_baseRadius * percent); 
-  var _initialFontSize = 10 + (10 * percent);  
+  var _initialFontSize = 20 + (10 * percent);  
 
   var _StatesEnum = {
     MOUSEOVER: 0,
@@ -232,12 +232,19 @@ var SmartBubble = (function(paper, baseRadius, percent, growRate, text) {
 
       circle.toFront(); 
 
-      var txt = _paper.text(_vec.x, _vec.y, _text);
-      txt.attr('fill', _renderState.textColor);
-      txt.attr('font-size', _renderState.fontSize);
-      txt.mouseover(onmouseover);
-      txt.mouseout(onmouseout);
+      var header = _paper.text(_vec.x, _vec.y - 40, _text.split("\n")[0].trim());
+      header.attr('font-family', "Helvetica");
+      header.attr('fill', _renderState.textColor);
+      header.attr('font-size', _renderState.fontSize);
+      header.mouseover(onmouseover);
+      header.mouseout(onmouseout);
 
+      var body = _paper.text(_vec.x, _vec.y, _text.split("\n")[1].trim());
+      body.attr('font-family', "Helvetica");
+      body.attr('fill', _renderState.textColor);
+      body.attr('font-size', _renderState.fontSize -5 );
+      body.mouseover(onmouseover);
+      body.mouseout(onmouseout);
     },
     
     getCircumWorldCoordsByDegrees: function() {
