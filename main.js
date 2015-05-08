@@ -249,7 +249,10 @@ var SmartBubble = (function(paper, baseRadius, percent, growRate, text) {
       var header = _paper.text(_vec.x, _vec.y - 40, _text.split("\n")[0].trim());
       header.attr('font-family', "Helvetica");
       header.attr('fill', _renderState.textColor);
-      header.attr('font-size', _renderState.fontSize);
+      header.attr('font-size', _initialFontSize);
+      if ( _renderState.glow ) {
+        header.scale(1.5)
+      }
       
       var body = _paper.text(_vec.x, _vec.y, "");
       writeTextInBBox(body, 
@@ -257,7 +260,11 @@ var SmartBubble = (function(paper, baseRadius, percent, growRate, text) {
           _initialRadius);
       body.attr('font-family', "Helvetica");
       body.attr('fill', _renderState.textColor);
-      body.attr('font-size', _renderState.fontSize -12 );
+      body.attr('font-size', _initialFontSize -17);
+      if ( _renderState.glow ) {
+        body.scale(1.5)
+      }
+      
       
       header.mouseover(onmouseover);
       header.mouseout(onmouseout);
