@@ -135,6 +135,20 @@ var SmartBubble = (function(paper, baseRadius, percent, growRate, text) {
     _state = _StatesEnum.MOUSEOUT;
   };
 
+  var writeTextInBBox = function(r_txt, content, w) {
+    var words = content.split(" ");
+    var tempText = "";
+    for ( var i=0; i < words.length; i++ ) {
+      r_txt.attr("text", tempText + " " + words[i]);
+      if (r_txt.getBBox().width > w) {
+        tempText += "\n" + words[i];
+      } else {
+        tempText += " " + words[i];
+      }
+    }
+    r_txt.attr("text", tempText.substring(1));
+  };
+
   return {
     update: function(vec, distance, framecount) {
       // Position
@@ -236,13 +250,17 @@ var SmartBubble = (function(paper, baseRadius, percent, growRate, text) {
       header.attr('font-family', "Helvetica");
       header.attr('fill', _renderState.textColor);
       header.attr('font-size', _renderState.fontSize);
-      header.mouseover(onmouseover);
-      header.mouseout(onmouseout);
-
-      var body = _paper.text(_vec.x, _vec.y, _text.split("\n")[1].trim());
+      
+      var body = _paper.text(_vec.x, _vec.y, "");
+      writeTextInBBox(body, 
+          _text.split("\n")[1].trim(), 
+          _initialRadius);
       body.attr('font-family', "Helvetica");
       body.attr('fill', _renderState.textColor);
-      body.attr('font-size', _renderState.fontSize -5 );
+      body.attr('font-size', _renderState.fontSize -12 );
+      
+      header.mouseover(onmouseover);
+      header.mouseout(onmouseout);
       body.mouseover(onmouseover);
       body.mouseout(onmouseout);
     },
