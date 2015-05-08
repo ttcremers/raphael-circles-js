@@ -111,7 +111,7 @@ var SmartBubble = (function(paper, baseRadius, percent, growRate, text) {
  
   // Calculated based on percentages
   var _initialRadius = _baseRadius + (_baseRadius * percent); 
-  var _initialFontSize = 20 + (10 * percent);  
+  var _initialFontSize = 8 + (8 * (percent) );  
 
   var _StatesEnum = {
     MOUSEOVER: 0,
@@ -246,30 +246,24 @@ var SmartBubble = (function(paper, baseRadius, percent, growRate, text) {
 
       circle.toFront(); 
 
-      var header = _paper.text(_vec.x, _vec.y - 40, _text.split("\n")[0].trim());
+      var header = _paper.text(_vec.x, _vec.y -19, _text.split("\n")[0].trim());
       header.attr('font-family', "HelveticaNeueLTStd-Lt");
       header.attr('fill', _renderState.textColor);
-      header.attr('font-size', _initialFontSize);
-      if ( _renderState.glow ) {
-        header.scale(1.5)
-      }
+      header.attr('font-size', _renderState.fontSize + 10);
       
-      var body = _paper.text(_vec.x, _vec.y, "");
+      var body = _paper.text(_vec.x, _vec.y +18, "");
       writeTextInBBox(body, 
           _text.split("\n")[1].trim(), 
           _initialRadius);
       body.attr('font-family', "HelveticaNeueLTStd-Lt");
       body.attr('fill', _renderState.textColor);
-      body.attr('font-size', _initialFontSize -17);
-      if ( _renderState.glow ) {
-        body.scale(1.5)
-      }
-      
+      body.attr('font-size', _renderState.fontSize);
       
       header.mouseover(onmouseover);
       header.mouseout(onmouseout);
       body.mouseover(onmouseover);
       body.mouseout(onmouseout);
+
     },
     
     getCircumWorldCoordsByDegrees: function() {
