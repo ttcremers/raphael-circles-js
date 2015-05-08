@@ -247,7 +247,7 @@ var SmartBubble = (function(paper, baseRadius, percent, growRate, text) {
       circle.toFront(); 
 
       var header = _paper.text(_vec.x, _vec.y - 40, _text.split("\n")[0].trim());
-      header.attr('font-family', "Helvetica");
+      header.attr('font-family', "HelveticaNeueLTStd-Lt");
       header.attr('fill', _renderState.textColor);
       header.attr('font-size', _initialFontSize);
       if ( _renderState.glow ) {
