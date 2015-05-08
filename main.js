@@ -258,7 +258,7 @@ var SmartBubble = (function(paper, baseRadius, percent, growRate, text) {
       writeTextInBBox(body, 
           _text.split("\n")[1].trim(), 
           _initialRadius);
-      body.attr('font-family', "Helvetica");
+      body.attr('font-family', "HelveticaNeueLTStd-Lt");
       body.attr('fill', _renderState.textColor);
       body.attr('font-size', _initialFontSize -17);
       if ( _renderState.glow ) {
