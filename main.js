@@ -242,9 +242,9 @@ var SmartBubble = (function(paper, baseRadius, percent, growRate, text) {
       circle.toFront(); 
 
       var header = smartText(
-          _paper, _vec, _text.split("\n")[0].trim(), {
+          _paper, _vec,  _text.split("\n")[0].trim(), {
             fill: _renderState.textColor, 
-            font_size: _renderState.fontSize + 10, // Pretend header font
+            font_size: _renderState.fontSize + 18, // Pretend header font
             max_width: _initialRadius
           }).render();
       
@@ -257,9 +257,9 @@ var SmartBubble = (function(paper, baseRadius, percent, growRate, text) {
      
       // Hack to get baseline alignment
       var hBboxHeight = header.getBBox().height;
-      header.attr('y', _vec.y - ( hBboxHeight / 2 ));
       var bBboxHeight = body.getBBox().height;
-      body.attr('y', _vec.y + ( bBboxHeight / 2 ));
+      header.attr('y', _vec.y - ( bBboxHeight ));
+      body.attr('y', _vec.y + ( hBboxHeight / 2 ));
      
       // register the same listener as the circle on text 
       header.mouseover(onmouseover);
