@@ -108,6 +108,7 @@ var SmartBubble = (function(paper, baseRadius, percent, growRate, text) {
   var _text                   = text;
   var _animationFrameCount    = 0;
   var _maxAnimationFrameCount = 15;
+  var _frameDelayShowRings    = 50;
  
   // Calculated based on percentages
   var _initialRadius = _baseRadius + (_baseRadius * percent); 
@@ -126,27 +127,20 @@ var SmartBubble = (function(paper, baseRadius, percent, growRate, text) {
     textColor: "#89cff0",
     strokeColor: "#89cff0",
     fillColor: "#FFF",
-    glow: false
+    glow: false,
+    showRingsEase: 0
   };
   var onmouseover = function() {
+    // Sometimes the mouse out isn't triggered, properly 
+    // we'll compensate for that using this hack
+    _paper.forEach(function(el) {
+      el.trigger('mouseout');
+    });
+
     _state = _StatesEnum.MOUSEOVER;
   };
   var onmouseout = function() {
     _state = _StatesEnum.MOUSEOUT;
-  };
-
-  var writeTextInBBox = function(r_txt, content, w) {
-    var words = content.split(" ");
-    var tempText = "";
-    for ( var i=0; i < words.length; i++ ) {
-      r_txt.attr("text", tempText + " " + words[i]);
-      if (r_txt.getBBox().width > w) {
-        tempText += "\n" + words[i];
-      } else {
-        tempText += " " + words[i];
-      }
-    }
-    r_txt.attr("text", tempText.substring(1));
   };
 
   return {
@@ -160,21 +154,22 @@ var SmartBubble = (function(paper, baseRadius, percent, growRate, text) {
 
           var targetSize = _initialRadius + (_initialRadius * growRate);
           var targetFontSize = _initialFontSize + ( _initialFontSize * growRate );
+          _renderState.fillColor = _targetFillColor;
 
           if (_animationFrameCount < _maxAnimationFrameCount) {
             _animationFrameCount++;
           }
 
           // Scale up bubble
-          if ( _renderState.radiusSize < targetSize ) {
-            // Regulate frame animation effects
-            var step = easeOutQuad(_animationFrameCount, 
-                _initialRadius, targetSize, _maxAnimationFrameCount);
-            
-            _renderState.radiusSize = step ;  
-            _renderState.glow = true;
-            _renderState.fillColor = _targetFillColor;
+          var step = easeOutQuad(_animationFrameCount, 
+              _initialRadius, targetSize, _maxAnimationFrameCount);
+
+          var modulu = (targetSize % step);
+          if ( modulu !== targetSize ) {
+            _renderState.radiusSize = step;  
           } else {
+            // animation is finished chaine the next
+            _renderState.glow = true;
             _animationFrameCount = 0;
           } 
 
@@ -246,19 +241,27 @@ var SmartBubble = (function(paper, baseRadius, percent, growRate, text) {
 
       circle.toFront(); 
 
-      var header = _paper.text(_vec.x, _vec.y -19, _text.split("\n")[0].trim());
-      header.attr('font-family', "HelveticaNeueLTStd-Lt");
-      header.attr('fill', _renderState.textColor);
-      header.attr('font-size', _renderState.fontSize + 10);
+      var header = smartText(
+          _paper, _vec, _text.split("\n")[0].trim(), {
+            fill: _renderState.textColor, 
+            font_size: _renderState.fontSize + 10, // Pretend header font
+            max_width: _initialRadius
+          }).render();
       
-      var body = _paper.text(_vec.x, _vec.y +18, "");
-      writeTextInBBox(body, 
-          _text.split("\n")[1].trim(), 
-          _initialRadius);
-      body.attr('font-family', "HelveticaNeueLTStd-Lt");
-      body.attr('fill', _renderState.textColor);
-      body.attr('font-size', _renderState.fontSize);
-      
+      var body = smartText(
+          _paper, _vec, _text.split("\n")[1].trim(), {
+            fill: _renderState.textColor, 
+            font_size: _renderState.fontSize,
+            max_width: _initialRadius
+          }).render();
+     
+      // Hack to get baseline alignment
+      var hBboxHeight = header.getBBox().height;
+      header.attr('y', _vec.y - ( hBboxHeight / 2 ));
+      var bBboxHeight = body.getBBox().height;
+      body.attr('y', _vec.y + ( bBboxHeight / 2 ));
+     
+      // register the same listener as the circle on text 
       header.mouseover(onmouseover);
       header.mouseout(onmouseout);
       body.mouseover(onmouseover);
@@ -271,4 +274,50 @@ var SmartBubble = (function(paper, baseRadius, percent, growRate, text) {
     }
   };
 });
+
+var smartText = function(paper, vec, text, opts) {
+  var options = stampit.mixIn({
+        font_family: "HelveticaNeueLTStd-Lt",
+        fill: "#000",
+        font_size: 10,
+        max_width: 100
+      }, opts);
+  
+  var writeTextInBBox = function(r_txt) {
+    var words = text.split(" ");
+    var tempText = "";
+    for ( var i=0; i < words.length; i++ ) {
+      r_txt.attr("text", tempText + " " + words[i]);
+      if (r_txt.getBBox().width > options.max_width) {
+        tempText += "\n" + words[i];
+      } else {
+        tempText += " " + words[i];
+      }
+    }
+    r_txt.attr("text", tempText.substring(1));
+  };
+
+  return {
+    render: function() {
+      var body = paper.text(vec.x, vec.y, "");
+      writeTextInBBox(body, text, options.max_width);
+      body.attr('font-family', options.font_family);
+      body.attr('fill', options.fill);
+      body.attr('font-size', options.font_size);
+
+
+      return body;
+    }
+  };
+};
+
+Raphael.el.trigger = function(eventName) {
+  if (this.events) {
+    for(var i = 0, len = this.events.length; i < len; i++) {
+      if (this.events[i].name == eventName) {
+        this.events[i].f.call(this);
+      }
+    }
+  }
+}
 
