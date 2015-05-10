@@ -20,33 +20,6 @@
 <script type="text/javascript" src="./main.js"></script>
 
 <script>
-
-  // shim layer with setTimeout fallback
-  (function() {
-      var lastTime = 0;
-      var vendors = ['ms', 'moz', 'webkit', 'o'];
-      for(var x = 0; x < vendors.length && !window.requestAnimationFrame; ++x) {
-          window.requestAnimationFrame = window[vendors[x]+'RequestAnimationFrame'];
-          window.cancelAnimationFrame = window[vendors[x]+'CancelAnimationFrame'] 
-                                    || window[vendors[x]+'CancelRequestAnimationFrame'];
-      }
-  
-      if (!window.requestAnimationFrame)
-          window.requestAnimationFrame = function(callback, element) {
-              var currTime = new Date().getTime();
-              var timeToCall = Math.max(0, 16 - (currTime - lastTime));
-              var id = window.setTimeout(function() { callback(currTime + timeToCall); }, 
-                timeToCall);
-              lastTime = currTime + timeToCall;
-              return id;
-          };
-  
-      if (!window.cancelAnimationFrame)
-          window.cancelAnimationFrame = function(id) {
-              clearTimeout(id);
-          };
-  }());
- 
   
   var mainPaper = Raphael(0, 0, 1280, 750); 
   var centerVector = {}; 
@@ -104,7 +77,8 @@
               bubble: BackgroundBubble.apply(null, b.args),
               parentID: b.parent,
               position: b.position,
-              name: Object.keys(levelDefinition)[i] 
+              name: Object.keys(levelDefinition)[i], 
+              type: "BackgroundBubble"
             });
        
         // SmartBubbles
@@ -117,7 +91,8 @@
                 bubble: SmartBubble.apply(null, s.args),
                 parentID: p_idx,
                 position: s.position,
-                name: s.name 
+                name: s.name,
+                type: "SmartBubble"
               });
         }
       }
@@ -129,40 +104,22 @@
             resolveBackgroundParents[this.objectStore[i].parentID];
         }
       }
-      console.log(resolveBackgroundParents);
-      console.log(this.objectStore);
-      this.frame(); // This starts the game loop
+      this.start(); // This starts the game loop
     },
 
-    frame: function() {
-      App.setDelta();
+    start: function() {
       App.update();
       App.render();
-      App.animationFrame = window.requestAnimationFrame(App.frame);
-    },
-
-    setDelta: function() {
-      App.now = Date.now();
-      if ( typeof App.then !== 'undefined' ) {
-        App.delta = (App.now - App.then) / 1000; // seconds since last frame
-      } else {
-        App.delta = 0;
-      }
-      App.then = App.now;
     },
 
     update: function() {
-
-      var distance = 100 * App.delta;
       for (var i = 0; i < this.objectStore.length; i++) {
         var obj = this.objectStore[i];
         if ( typeof obj.position === 'object' ) {
-          obj.bubble.update(obj.position, distance); 
+          obj.bubble.update(obj.position); 
         } else {
           obj.bubble.update(
-              this.objectStore[obj.parentID].bubble.getCircumWorldCoordsByDegrees(obj.position),
-              distance
-              ); 
+              this.objectStore[obj.parentID].bubble.getCircumWorldCoordsByDegrees(obj.position)); 
         }
       }
     },
@@ -171,12 +128,15 @@
       mainPaper.clear(); // clean our stage
       for (var i = 0; i < this.objectStore.length; i++) {
         var obj = this.objectStore[i];
-        obj.bubble.render();
+        if (obj.type === "BackgroundBubble") { 
+          obj.bubble.render(this.objectStore.filter(function(e) {
+                return e.parentID === i && e.type === "SmartBubble"; 
+                }));
+        }
       } 
     }
   
   };
-
   App.init(mainPaper, levelDefinition);
   
 </script>

@@ -10,7 +10,9 @@ var BackgroundBubble = (function(paper, radius) {
   var _decorativeSmallPosition = randomINTBetween(1, 120); 
   var _decorativeMediumPosition = randomINTBetween(120, 240); 
   var _decorativeLargePosition = randomINTBetween(240, 360); 
-  
+
+  var _renderChilderen = [];
+ 
   /**
     * Helper function to make it easy to get a world point on 
     * the circomference of the circle by just specifying at 
@@ -29,16 +31,13 @@ var BackgroundBubble = (function(paper, radius) {
   var drawDecortiveCircles = function(parentCircle) {
     // FIXME the hardcoded radius of 200 should be refactored out
     var scale = parentCircle.attrs.r / 200;
+    var zeroDegrees = getCircumWorldCoordsByDegrees(_decorativeSmallPosition); 
 
     // Small
     var v1 = getCircumWorldCoordsByDegrees(_decorativeSmallPosition);
-    var c1 = _paper.circle(
-        v1.x, 
-        v1.y, 
-        8 * scale);
+    var c1 = _paper.circle( v1.x, v1.y, 0);
     c1.attr('stroke', "#89cff0");
     c1.attr('fill', "#FFF");
-    c1.toBack(); 
 
     // Medium
     //degrees += ( 4 * scale );
@@ -66,33 +65,47 @@ var BackgroundBubble = (function(paper, radius) {
     
 
   return {
-    update: function(vec, distance, framecount) { 
+    update: function( vec ) { 
       _vec = vec; 
     },
     
-    render: function() {
-      var circle = _paper.circle(
-          _vec.x, 
-          _vec.y, 
-          _radius);
+    render: function( childeren ) { 
+      _renderChilderen = childeren;
+
+      var centerVector = {}; 
+      centerVector.x = Math.round(_paper.width / 2);
+      centerVector.y = Math.round(_paper.height / 2);
+
+      var circle = _paper.circle( _vec.x, _vec.y, randomINTBetween(5, 50));
       circle.attr('fill-opacity', 0);
       circle.attr('stroke', "#89cff0");
+      circle.animate({
+          r: _radius,
+        }, 
+        800, 
+        "elastic", 
+        function() {
+          drawDecortiveCircles(circle);
 
-      // We need to reset the internal Raphael counter 
-      // which we don't use in our case. If we don't it
-      // we'll keep incrementing with every frame
-      circle.id=0;
-      drawDecortiveCircles(circle);
+          if ( _renderChilderen.length > 0 ) {
+            for (var i = 0; i < _renderChilderen.length; i++) {
+              var child = _renderChilderen[i];
+              child.bubble.render();
+            }
+          }
+          circle.toBack(); 
+      });
       
-      circle.toBack(); 
     },
-
     getCircumWorldCoordsByDegrees: getCircumWorldCoordsByDegrees
     
   };
 });
 
 var SmartBubble = (function(paper, baseRadius, percent, growRate, text) {
+  // Our main venue 
+  var _circle, _header, _body, _hello;
+  
   // Fixed properties
   var _paper                  = paper;
   var _baseRadius             = baseRadius;
@@ -113,160 +126,111 @@ var SmartBubble = (function(paper, baseRadius, percent, growRate, text) {
   // Calculated based on percentages
   var _initialRadius = _baseRadius + (_baseRadius * percent); 
   var _initialFontSize = 8 + (8 * (percent) );  
+  var _targetRadius = _initialRadius + (_initialRadius * growRate);
+  var _targetFontSize = _initialFontSize + ( _initialFontSize * growRate );
 
-  var _StatesEnum = {
-    MOUSEOVER: 0,
-    MOUSEOUT: 1
+  var STATES = {
+    IS_MOUSEOVER: 1, 
+    IS_MOUSEOUT: 2, 
   };
-  var _state = _StatesEnum.MOUSEOUT;
-
-  // Calculated in render loop
-  var _renderState = {
-    radiusSize: _initialRadius,
-    fontSize: _initialFontSize,
-    textColor: "#89cff0",
-    strokeColor: "#89cff0",
-    fillColor: "#FFF",
-    glow: false,
-    showRingsEase: 0
-  };
-  var onmouseover = function() {
-    // Sometimes the mouse out isn't triggered, properly 
-    // we'll compensate for that using this hack
-    _paper.forEach(function(el) {
-      el.trigger('mouseout');
-    });
-
-    _state = _StatesEnum.MOUSEOVER;
-  };
-  var onmouseout = function() {
-    _state = _StatesEnum.MOUSEOUT;
-  };
+  var STATE = STATES.IS_MOUSEOUT;
 
   return {
-    update: function(vec, distance, framecount) {
-      // Position
+    update: function(vec) {
       _vec = vec;
-
-      /* update internal properties */
-      switch (_state) {
-        case _StatesEnum.MOUSEOVER:
-
-          var targetSize = _initialRadius + (_initialRadius * growRate);
-          var targetFontSize = _initialFontSize + ( _initialFontSize * growRate );
-          _renderState.fillColor = _targetFillColor;
-
-          if (_animationFrameCount < _maxAnimationFrameCount) {
-            _animationFrameCount++;
-          }
-
-          // Scale up bubble
-          var step = easeOutQuad(_animationFrameCount, 
-              _initialRadius, targetSize, _maxAnimationFrameCount);
-
-          var modulu = (targetSize % step);
-          if ( modulu !== targetSize ) {
-            _renderState.radiusSize = step;  
-          } else {
-            // animation is finished chaine the next
-            _renderState.glow = true;
-            _animationFrameCount = 0;
-          } 
-
-          // Scale up text
-          if ( _renderState.fontSize < targetFontSize ) {
-            _renderState.fontSize += distance;
-            _renderState.textColor = _targetTextColor;
-          } 
-          break;
-
-        case _StatesEnum.MOUSEOUT:
-          
-          if (_animationFrameCount < _maxAnimationFrameCount) {
-            _animationFrameCount++;
-          }
-         
-          // Shrink down bubble
-          var step = easeInQuad(_animationFrameCount, 
-              _renderState.radiusSize, _initialRadius, _maxAnimationFrameCount);
-          var sizeToBe = _renderState.radiusSize - (step - _renderState.radiusSize);
-
-          if ( sizeToBe > _initialRadius ) {
-            _renderState.radiusSize = sizeToBe;
-            _renderState.glow = false;
-            _renderState.fillColor = _initialFillColor;
-          } else {
-            _animationFrameCount = 0;
-          }
-          
-          // Shrink down text
-          var fontSizeToBe = _renderState.fontSize - distance;
-          if ( fontSizeToBe > _initialFontSize ) {
-            _renderState.fontSize = fontSizeToBe; 
-            _renderState.textColor = _initialTextColor;
-          }
-          break;
-      }
     },
+
     render: function() {
       /* render out the graphic to main paper */
-      var circle = _paper.circle(
+      _circle = _paper.circle(
           _vec.x, 
           _vec.y, 
-          _renderState.radiusSize);
-
-      circle.attr('fill', _renderState.fillColor);
-      circle.attr('stroke', _renderState.strokeColor);
-
-      circle.mouseover(onmouseover);
-      circle.mouseout(onmouseout);
-
-      if ( _renderState.glow ) {
-        var c1 = _paper.circle(
-            _vec.x, 
-            _vec.y, 
-            _renderState.radiusSize + 30);
-        var c2 = _paper.circle(
-            _vec.x, 
-            _vec.y, 
-            _renderState.radiusSize + 60);
-        
-        c1.attr('fill', _renderState.fillColor);
-        c2.attr('fill', _renderState.fillColor);
-        c1.attr('fill-opacity', 0.2);
-        c2.attr('fill-opacity', 0.1);
-        c1.attr('stroke-opacity', 0.0);
-        c2.attr('stroke-opacity', 0.0);
-      }       
-
-      circle.toFront(); 
-
-      var header = smartText(
-          _paper, _vec,  _text.split("\n")[0].trim(), {
-            fill: _renderState.textColor, 
-            font_size: _renderState.fontSize + 18, // Pretend header font
-            max_width: _initialRadius
-          }).render();
+          5);
+      _circle.attr('fill', _initialFillColor);
+      _circle.attr('stroke', _initialStrokeColor);
       
-      var body = smartText(
-          _paper, _vec, _text.split("\n")[1].trim(), {
-            fill: _renderState.textColor, 
-            font_size: _renderState.fontSize,
-            max_width: _initialRadius
-          }).render();
-     
-      // Hack to get baseline alignment
-      var hBboxHeight = header.getBBox().height;
-      var bBboxHeight = body.getBBox().height;
-      header.attr('y', _vec.y - ( bBboxHeight ));
-      body.attr('y', _vec.y + ( hBboxHeight / 2 ));
-     
-      // register the same listener as the circle on text 
-      header.mouseover(onmouseover);
-      header.mouseout(onmouseout);
-      body.mouseover(onmouseover);
-      body.mouseout(onmouseout);
+      var onmouseover = function(e) {
+        var targetSize = _targetRadius;
+        var targetFontSize = _targetFontSize;
 
+        _circle.animate({
+          r: targetSize,
+          fill: _targetFillColor 
+        }, 100, "backIn", function() {
+          _hello.show();
+          _hello.animate({ opacity: 1.0 }, 100, "<");
+        });
+
+        _header.animate({"font-size": _targetFontSize + 18 }, 100, "backIn");
+        _body.animate({"font-size": _targetFontSize }, 100, "backIn");
+
+        _header.attr("fill", _targetTextColor);
+        _body.attr("fill", _targetTextColor);
+
+      };
+
+      var onmouseout = function(e) {
+        var x = e.layerX || e.x,
+            y = e.layerY || e.y; 
+        if (this.isPointInside(x, y)) return false;
+
+        _hello.animate({
+          opacity: 0.0 
+        }, 100, ">", function() { 
+          _hello.hide();
+          _circle.animate({ r: _initialRadius, fill: _initialFillColor }, 100, "backOut");
+        });
+
+        _header.animate({"font-size": _initialFontSize + 18 }, 100, "backOut");
+        _body.animate({"font-size": _initialFontSize }, 100, "backOut");
+
+        _header.attr("fill", _initialTextColor);
+        _body.attr("fill", _initialTextColor);
+
+      };
+      
+      
+      _circle.animate({ r: _initialRadius, x: _vec.x, y: _vec.y}, 
+        500, 
+        "bounce", 
+        function() { 
+          _header = smartText(
+              _paper, _vec,  _text.split("\n")[0].trim(), {
+                fill: _initialTextColor, 
+                font_size: _initialFontSize + 18, // Pretend header font
+                max_width: _initialRadius
+              }).render();
+          
+          _body = smartText(
+              _paper, _vec, _text.split("\n")[1].trim(), {
+                fill: _initialTextColor, 
+                font_size: _initialFontSize,
+                max_width: _initialRadius
+              }).render();
+        
+          // Hack to get baseline alignment
+          var hBboxHeight = _header.getBBox().height;
+          var bBboxHeight = _body.getBBox().height;
+          _header.attr('y', _vec.y - ( bBboxHeight ));
+          _body.attr('y', _vec.y + ( hBboxHeight / 2 ));
+          
+          _circle.mouseover(onmouseover);
+          _circle.mouseout(onmouseout);
+      });
+
+     
+      _hello = _paper.set();
+      _hello.push(
+        _paper.circle( _vec.x, _vec.y, _targetRadius + 30)
+          .attr('fill', _targetFillColor)
+          .attr('fill-opacity', 0.2)
+          .attr('stroke-opacity', 0.0), 
+        _paper.circle( _vec.x, _vec.y, _targetRadius + 60)
+          .attr('fill', _targetFillColor)
+          .attr('fill-opacity', 0.1)
+          .attr('stroke-opacity', 0.0));
+      _hello.attr('opacity', 0.0);
+      _hello.toBack();
     },
     
     getCircumWorldCoordsByDegrees: function() {
@@ -304,8 +268,6 @@ var smartText = function(paper, vec, text, opts) {
       body.attr('font-family', options.font_family);
       body.attr('fill', options.fill);
       body.attr('font-size', options.font_size);
-
-
       return body;
     }
   };
