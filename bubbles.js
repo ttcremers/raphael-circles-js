@@ -1,4 +1,90 @@
-var BackgroundBubble = (function(paper, radius) {
+var Bubbles = {
+	objectStore: [],
+
+	init: function(levelDefinition, elmID, width, height) {
+		
+		var mainPaper = Raphael(elmID, width, height); 
+		var centerVector = {
+			x: Math.round(mainPaper.width / 2),
+			y: Math.round(mainPaper.height / 2)
+		}; 
+
+		// Generate all objects
+		var resolveBackgroundParents = {}; 
+		for (var i = 0; i < Object.keys(levelDefinition).length; i++) {
+			var b = levelDefinition[Object.keys(levelDefinition)[i]];
+			var position = b.position || centerVector;
+			b.args.unshift(mainPaper);	
+
+			// BackgroundBubbles
+			this.objectStore.push( { 
+						bubble: BackgroundBubble.apply(null, b.args),
+						parentID: b.parent,
+						position: position,
+						name: Object.keys(levelDefinition)[i], 
+						type: "BackgroundBubble"
+					});
+		 
+			// SmartBubbles
+			var p_idx = this.objectStore.length -1;
+			resolveBackgroundParents[Object.keys(levelDefinition)[i]] = p_idx;
+
+			for (var x = 0; x < b.smartBubbles.length; x++) {
+				var s = b.smartBubbles[x];
+				s.args.unshift(mainPaper);	
+
+				this.objectStore.push( { 
+							bubble: SmartBubble.apply(null, s.args),
+							parentID: p_idx,
+							position: s.position,
+							name: s.name,
+							type: "SmartBubble"
+						});
+			}
+		}
+
+		// Translate parentID string to array index ID
+		for (var i = 0; i < this.objectStore.length; i++) {
+			if (typeof this.objectStore[i].parentID !== 'number') {
+				this.objectStore[i].parentID = 
+					resolveBackgroundParents[this.objectStore[i].parentID];
+			}
+		}
+		this.start(mainPaper); // This starts the game loop
+	},
+
+	start: function(mainPaper) {
+		this.update(mainPaper);
+		this.render(mainPaper);
+	},
+
+	update: function(mainPaper) {
+		for (var i = 0; i < this.objectStore.length; i++) {
+			var obj = this.objectStore[i];
+			if ( typeof obj.position === 'object' ) {
+				obj.bubble.update(obj.position); 
+			} else {
+				obj.bubble.update(
+						this.objectStore[obj.parentID].bubble.getCircumWorldCoordsByDegrees(obj.position)); 
+			}
+		}
+	},
+
+	render: function(mainPaper) {
+		mainPaper.clear(); // clean our stage
+		for (var i = 0; i < this.objectStore.length; i++) {
+			var obj = this.objectStore[i];
+			if (obj.type === "BackgroundBubble") { 
+				obj.bubble.render(this.objectStore.filter(function(e) {
+					return e.parentID === i && e.type === "SmartBubble"; 
+				}));
+			}
+		} 
+	}
+};
+
+
+var BackgroundBubble = (function(paper, radius, delay) {
   var randomINTBetween = function(min, max) {
     return Math.floor(Math.random()*(max-min+1)+min);
   };
@@ -76,25 +162,27 @@ var BackgroundBubble = (function(paper, radius) {
       centerVector.x = Math.round(_paper.width / 2);
       centerVector.y = Math.round(_paper.height / 2);
 
-      var circle = _paper.circle( _vec.x, _vec.y, randomINTBetween(5, 50));
+      var circle = _paper.circle( _vec.x, _vec.y, 0);
       circle.attr('fill-opacity', 0);
       circle.attr('stroke', "#89cff0");
-      circle.animate({
-          r: _radius,
-        }, 
-        800, 
-        "elastic", 
-        function() {
-          drawDecortiveCircles(circle);
+			window.setTimeout(function() {
+				circle.animate({
+						r: _radius,
+					}, 
+					1500, 
+					"backOut", 
+					function() {
+						drawDecortiveCircles(circle);
 
-          if ( _renderChilderen.length > 0 ) {
-            for (var i = 0; i < _renderChilderen.length; i++) {
-              var child = _renderChilderen[i];
-              child.bubble.render();
-            }
-          }
-          circle.toBack(); 
-      });
+						if ( _renderChilderen.length > 0 ) {
+							for (var i = 0; i < _renderChilderen.length; i++) {
+								var child = _renderChilderen[i];
+								child.bubble.render();
+							}
+						}
+						circle.toBack(); 
+				});
+			}, delay );
       
     },
     getCircumWorldCoordsByDegrees: getCircumWorldCoordsByDegrees
@@ -102,7 +190,7 @@ var BackgroundBubble = (function(paper, radius) {
   };
 });
 
-var SmartBubble = (function(paper, baseRadius, percent, growRate, text) {
+var SmartBubble = (function(paper, baseRadius, percent, growRate, text, href, delay) {
   // Our main venue 
   var _circle, _header, _body, _hello;
   
@@ -150,6 +238,8 @@ var SmartBubble = (function(paper, baseRadius, percent, growRate, text) {
       _circle.attr('stroke', _initialStrokeColor);
       
       var onmouseover = function(e) {
+				this[0].style.cursor = "pointer";
+
         var targetSize = _targetRadius;
         var targetFontSize = _targetFontSize;
 
@@ -170,6 +260,7 @@ var SmartBubble = (function(paper, baseRadius, percent, growRate, text) {
       };
 
       var onmouseout = function(e) {
+				this[0].style.cursor = "";
         var x = e.layerX || e.x,
             y = e.layerY || e.y; 
         if (this.isPointInside(x, y)) return false;
@@ -188,35 +279,44 @@ var SmartBubble = (function(paper, baseRadius, percent, growRate, text) {
         _body.attr("fill", _initialTextColor);
 
       };
-      
-      
-      _circle.animate({ r: _initialRadius, x: _vec.x, y: _vec.y}, 
-        500, 
-        "bounce", 
-        function() { 
-          _header = smartText(
-              _paper, _vec,  _text.split("\n")[0].trim(), {
-                fill: _initialTextColor, 
-                font_size: _initialFontSize + 18, // Pretend header font
-                max_width: _initialRadius
-              }).render();
-          
-          _body = smartText(
-              _paper, _vec, _text.split("\n")[1].trim(), {
-                fill: _initialTextColor, 
-                font_size: _initialFontSize,
-                max_width: _initialRadius
-              }).render();
-        
-          // Hack to get baseline alignment
-          var hBboxHeight = _header.getBBox().height;
-          var bBboxHeight = _body.getBBox().height;
-          _header.attr('y', _vec.y - ( bBboxHeight ));
-          _body.attr('y', _vec.y + ( hBboxHeight / 2 ));
-          
-          _circle.mouseover(onmouseover);
-          _circle.mouseout(onmouseout);
-      });
+
+			var onclick = function(e) { window.location.href = href;	};
+     
+		 	window.setTimeout( function() {
+				_circle.animate({ r: _initialRadius, x: _vec.x, y: _vec.y}, 
+					800, 
+					"backOut", 
+					function() { 
+						_header = smartText(
+								_paper, _vec,  _text.split("\n")[0].trim(), {
+									fill: _initialTextColor, 
+									font_size: _initialFontSize + 18, // Pretend header font
+									max_width: _initialRadius
+								}).render();
+						
+						_body = smartText(
+								_paper, _vec, _text.split("\n")[1].trim(), {
+									fill: _initialTextColor, 
+									font_size: _initialFontSize,
+									max_width: _initialRadius
+								}).render();
+					
+						// Hack to get baseline alignment
+						var hBboxHeight = _header.getBBox().height;
+						var bBboxHeight = _body.getBBox().height;
+						_header.attr('y', _vec.y - ( bBboxHeight ));
+						_body.attr('y', _vec.y + ( hBboxHeight / 2 ));
+						
+						_circle.mouseover(onmouseover);
+						_circle.mouseout(onmouseout);
+						_circle.click(onclick);
+
+						_header.click(onclick);
+						_body.click(onclick);
+						_header.mouseover( function() { this[0].style.cursor = "pointer"} );
+						_body.mouseover( function() { this[0].style.cursor = "pointer"} );
+				});
+			}, delay);
 
      
       _hello = _paper.set();
@@ -272,14 +372,4 @@ var smartText = function(paper, vec, text, opts) {
     }
   };
 };
-
-Raphael.el.trigger = function(eventName) {
-  if (this.events) {
-    for(var i = 0, len = this.events.length; i < len; i++) {
-      if (this.events[i].name == eventName) {
-        this.events[i].f.call(this);
-      }
-    }
-  }
-}
 

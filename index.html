@@ -3,7 +3,6 @@
 <head>
 	<title>Circles</title>
 	<script type="text/javascript" src="./raphael.js"></script>
-	<script type="text/javascript" src="./easing.js"></script>
 	<script type="text/javascript" src="./stampit.js"></script>
   <style type="text/css">
     @font-face {
@@ -16,129 +15,66 @@
 		
 </head>
 <body>
+	<div id="bubbles-container"></div>
 
-<script type="text/javascript" src="./main.js"></script>
-
-<script>
-  
-  var mainPaper = Raphael(0, 0, 1280, 750); 
-  var centerVector = {}; 
-  centerVector.x = Math.round(mainPaper.width / 2);
-  centerVector.y = Math.round(mainPaper.height / 2);
-  
-  var levelDefinition = {
-    "60_80": {
-      position: centerVector,    
-      args: [mainPaper, 200],
-      smartBubbles: [
-        {name: '60%', position: 160, args: [mainPaper, 50, 0.6, 0.2, "60%\nDit is een test bubble"]},
-      ]
-    },   
-    "80_100": {
-      parent: "60_80",
-      position: 340,
-      args: [mainPaper, 200],
-      smartBubbles: [
-        {name: '80%', position: 30, args: [mainPaper, 50, 0.8, 0.2, "80%\nDit is een test bubble"]},
-        {name: '98%', position: 160, args: [mainPaper, 50, 1, 0.2, "98%\nVan uw bezoekers kijkt, maar koopt niet!"]},
-      ]
-    },   
-    "40_60": {
-      parent: "60_80",
-      position: 210,
-      args: [mainPaper, 150],
-      smartBubbles: [
-        {name: '40%', position: 220, args: [mainPaper, 50, 0.7, 0.2, "40%\nDit is een test bubble"]},
-      ]
-    },   
-    "20_40": {
-      parent: "40_60",
-      position: 165,
-      args: [mainPaper, 120],
-      smartBubbles: [
-        {name: '20%', position: 160, args: [mainPaper, 50, 0.5, 0.2, "20%\nDit is een test bubble"]},
-      ]
-    }  
-  };
-
-
-  var App = {
-    objectStore: [],
-
-    init: function(mainPaper, levelDefinition) {
-
-      // Generate all objects
-      var resolveBackgroundParents = {}; 
-      for (var i = 0; i < Object.keys(levelDefinition).length; i++) {
-        var b = levelDefinition[Object.keys(levelDefinition)[i]];
-        
-        // BackgroundBubbles
-        this.objectStore.push( { 
-              bubble: BackgroundBubble.apply(null, b.args),
-              parentID: b.parent,
-              position: b.position,
-              name: Object.keys(levelDefinition)[i], 
-              type: "BackgroundBubble"
-            });
-       
-        // SmartBubbles
-        var p_idx = this.objectStore.length -1;
-        resolveBackgroundParents[Object.keys(levelDefinition)[i]] = p_idx;
-
-        for (var x = 0; x < b.smartBubbles.length; x++) {
-          var s = b.smartBubbles[x];
-          this.objectStore.push( { 
-                bubble: SmartBubble.apply(null, s.args),
-                parentID: p_idx,
-                position: s.position,
-                name: s.name,
-                type: "SmartBubble"
-              });
-        }
-      }
-
-      // Translate parentID string to array index ID
-      for (var i = 0; i < this.objectStore.length; i++) {
-        if (typeof this.objectStore[i].parentID !== 'number') {
-          this.objectStore[i].parentID = 
-            resolveBackgroundParents[this.objectStore[i].parentID];
-        }
-      }
-      this.start(); // This starts the game loop
-    },
-
-    start: function() {
-      App.update();
-      App.render();
-    },
-
-    update: function() {
-      for (var i = 0; i < this.objectStore.length; i++) {
-        var obj = this.objectStore[i];
-        if ( typeof obj.position === 'object' ) {
-          obj.bubble.update(obj.position); 
-        } else {
-          obj.bubble.update(
-              this.objectStore[obj.parentID].bubble.getCircumWorldCoordsByDegrees(obj.position)); 
-        }
-      }
-    },
-
-    render: function() {
-      mainPaper.clear(); // clean our stage
-      for (var i = 0; i < this.objectStore.length; i++) {
-        var obj = this.objectStore[i];
-        if (obj.type === "BackgroundBubble") { 
-          obj.bubble.render(this.objectStore.filter(function(e) {
-                return e.parentID === i && e.type === "SmartBubble"; 
-                }));
-        }
-      } 
-    }
-  
-  };
-  App.init(mainPaper, levelDefinition);
-  
-</script>
+	<script type="text/javascript" src="./bubbles.js"></script>
+	<script>
+		var levelDefinition = {
+			"60_80": {
+				args: [200, 200],
+				smartBubbles: [
+					{ 
+						name: '60%', 
+						position: 160, 
+						args: [50, 0.6, 0.2, "60%\nDit is een test bubble", "http://google.com", 1200]
+					}
+				]
+			},   
+			"80_100": {
+				parent: "60_80",
+				position: 340,
+				args: [200, 600],
+				smartBubbles: [
+					{
+						name: '80%', 
+						position: 30, 
+						args: [50, 0.8, 0.2, "80%\nDit is een test bubble", "http://google.com", 600]
+					},
+					{
+						name: '98%', 
+						position: 160, 
+						args: [50, 1, 0.2, "98%\nVan uw bezoekers kijkt, maar koopt niet!", "http://google.com", 100]
+					},
+				]
+			},   
+			"40_60": {
+				parent: "60_80",
+				position: 210,
+				args: [150, 1000],
+				smartBubbles: [
+					{
+						name: '40%', 
+						position: 220, 
+						args: [50, 0.7, 0.2, "40%\nDit is een test bubble", "http://google.com", 1000]
+					},
+				]
+			},   
+			"20_40": {
+				parent: "40_60",
+				position: 165,
+				args: [120, 1500],
+				smartBubbles: [
+					{
+						name: '20%', 
+						position: 160, 
+						args: [50, 0.5, 0.2, "20%\nDit is een test bubble", "http://google.com", 1500]
+					},
+				]
+			}  
+		};
+		
+		// Init with our created level definition
+		Bubbles.init(levelDefinition, "bubbles-container", 1280, 768);
+	</script>
 </body>
 </html>
